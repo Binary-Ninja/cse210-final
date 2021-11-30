@@ -1,0 +1,133 @@
+Various notes and things for the bitfont module.
+
+TO DO:
+- create bare minimum editor
+- create tab class
+- create window manager
+- create multiple json loaders for data
+- have windows dependent on themes and data
+- make editor
+
+TAB
+- cell surface
+- status bar
+
+MENU BAR:
+
+BAREBONES:
+New, Open, Save, Undo, Redo
+
+Bitfont, File, Edit, Help
+Bitfont / About / Preferences / Quit
+File / New / Open / Open Recent... / Save / Save As... / Export As...
+Edit / Undo / Redo / Tool Windows
+Help / Manual
+
+DEV LOG 2020
+
+Tuesday Jun 2
+- moved whole bitfont module to its own folder
+- moved the fonts over to the bitfont folder
+- created notes file for notes, to do lists, change log, etc.
+- copied tester file over for testing features
+- created editor file for editing bitfont surfaces and images
+- editor now has a barebones Main class to run
+- editor Main class filled out and displaying ascii characters
+Wednesday Jun 3
+- created horizontal_line and vertical_line functions
+- added horizontal_line and vertical_line to CellSurface
+- began work on GUI mockup
+- command-w sends a pg quit event on mac
+- if user enters key command, it will be caught by key checking first
+- if user clicks directly from title bar, it will go straight to pg quit
+- added a block to the key command that will be optional later on
+- created most of GUI mockup, just need side panels for selections
+- tool select, char select, color select/swatch select, layer options
+Thursday Jun 4
+- mostly planned out all dark scheme colors
+- finished first GUI mockup
+Friday Sep 4
+- completed all drawing code
+- ellipse_pie and circle_pie now work and accept width arguments
+- angle_in_arc function simplifies pie code
+
+DEV LOG 2021
+
+Tuesday March 30
+- Started work on the new Font class on Sunday, completed it today.
+- Installed numpy for new Surface classes.
+Wednesday March 31
+- Moved the invert image method to a static method in the Font class.
+- Updated the invert image method to use pygame's surfarray module.
+- Invert image method now inverts in place.
+- Updated _draw_cell method in PygameSurface to use invert image for true black support.
+- BUG Color (1, 1, 1) still showing up transparent.
+Thursday April 1
+- Deleted everything and began a life of crime.
+- Created fill function.
+- Created blit function.
+- CellType type hint and updates to fill function allow default values in tile, fg, bg.
+Friday April 2
+- Created draw_cells method and created the update function.
+- Added cell and pixel conversions to PygameSurface and debugged the draw_cells method.
+Wednesday April 7
+- added write_cells method for writing multiple tiles at once
+- added cell_in_bounds method to Surface
+- added draw_cell method and let draw_cells and write_cells use it
+- optimized blit and fill by adding support for updating rect sections of the screen.
+Thursday April 8
+- testing resizing the screen on the fly, seems quick enough, faster in full screen though
+- modified fill function to iterate instead of slice, which allows testing for cell equality
+- with new fill func, fps goes to 300 and only drops to ~56 in full screen with line wiggling
+Saturday April 10
+- implemented buffer for PygameSurface so only changed cells are drawn
+- the checks are still costly, so only redraw things when you know there's been change
+- drawing methods on the surface no longer do anything when called with empty cells or apply modes
+- tested various pygame flags, and determined full screen unnecessary
+- tested pyinstaller with an empty pygame window, just default font displaying fps, worked perfectly
+- further testing eventually required to see if files need to be moved
+- deleted old code and cleaned up the bitfont module
+- the only code left is Font, Surface, PygameSurface, and the draw and other functions
+Sunday April 11
+- optimized draw cell to draw directly on the surface instead of returning one
+- further optimized draw cell and update by letting user pass another surf to draw on instead
+- fps in full screen increased from 227 to 293
+- added change font method and refactor size static method to pygame surface
+- change font only changes font, not cell dimensions
+- refactor size returns a surface that fits inside given pixel dimensions with given font
+- reworked module so all files are in the main folder
+- cleaned up the editor file to work with new module
+Monday April 12
+- attempted to write a shader in pure python
+- please learn from my mistakes and never do the same
+- no other progress to report today
+Tuesday April 13
+- editor now crashes when fonts directory not found
+- editor now creates screenshots folder when not available
+Thursday April 14
+- reorganized module to have scripts folder
+- created preference manager and preference file
+- editor now loads preferences
+- editor now displays fps while in debug mode
+Thursday April 22
+- tried to implement windowing system, failed miserably
+Friday April 23
+- implemented bare bones Button and MenuBar class
+- mousing over now works
+Tuesday May 4
+- researched color schemes and contrasting
+Wednesday May 5
+- did some quick hacks that ended up not solving anything
+Thursday May 6
+- created window manager
+Saturday May 8
+- did not delete anything, but simplified menu bar to 5 buttons
+Sunday May 9
+- created tab class
+- while creating tab class, uncovered blit bug
+- blitting larger images onto small ones caused crash
+Monday May 10
+- fixed that nasty blit bug
+- bound the rect onto the master image and recalculated size to clip in bounds
+Thursday August 12
+- created new blit2 method that has no bugs

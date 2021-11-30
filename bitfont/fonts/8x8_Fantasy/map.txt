@@ -1,0 +1,14 @@
+8x8
+cornerEN,cornerES,cornerNE,cornerNW,cornerSE,cornerSW,cornerWN,cornerWS,intersectdE,intersectdN,intersectsE,intersectsN,tdE,tdN,tdS,tdW,tsE,tsN,tsS,tsW
+quarterNW,quarterNE,quarterSE,quarterSW,halfS,halfN,halfE,halfW,checkerNW,checkerNE,slantNE,slantSE,slantSW,slantNW,slantquarterNE,slantquarterSE,slantquarterSW,slantquarterNW,slanttripleNE,slanttripleSE,slanttripleSW,slanttripleNW,tripleNE,tripleNW,tripleSW,tripleSE
+upright,downright,downleft,upleft,doubleEW,doubleNS,doubleNE,doubleNW,right,left,up,down,doubleN,doubleE,doubleS,doubleW
+product,omega,alpha,pi,sigma,psi,dollar,cent,club,spade,male,female,singlenote,doublenote,phi,theta,dagger
+plus,minus,dot,plusorminus,superset,minusorplus,middledot,divide,equals,subset,notequals,percent,radical,integralbottom,integraltop,integral,infinity,greater,lesser,greaterequal,lesserequal,approx,tilde,identity,union,intersection
+exclaim,upsideexclaim,fslash,bslash,ellipses,hashtag,bracketleft,asterisk,bracketright,parenleft,parenright,ampersand,colon,braceleft,braceright,doublequote,underscore,quotestart,quoteend,at,question,upsidequestion,caret,pipe,semicolon,comma
+1,2,3,4,5,6,7,8,9,0,full,25,50,75,empty
+scornerNE,scornerNW,scornerSE,scornerSW,sintersect,slineEW,slineNS,stE,stN,stS,stW,dtW,dcornerNE,dcornerNW,dcornerSE,dcornerSW,dintersect,dlineEW,dlineNS,dtE,dtN,dtS
+circle,diamond,cspiralW,heart,cspiralN,roundfrown,cspiralE,roundsmile,cspiralS,shogi,ccspiralE,square,ccspiralS,squarefrown,ccspiralW,squaresmile,ccspiralN,triangleN,triangleE,triangleS,triangleW,squarelinesmile,squarelinefrown,roundlinesmile,roundlinefrown,star
+hcircle,hstar,hdiamond,hcspiralW,hheart,hcspiralN,hroundfrown,hcspiralE,hroundsmile,hcspiralS,hshogi,hccspiralE,hsquare,hccspiralS,hsquarefrown,hccspiralW,hsquaresmile,hccspiralN,hsquarelinesmile,hsquarelinefrown,hroundlinesmile,hroundlinefrown,htriangleW,htriangleN,htriangleE,htriangleS
+a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z
+A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z
+END
