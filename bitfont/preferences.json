@@ -1,8 +1,0 @@
-{
-  "Version": "0.1",
-  "Resolution": [800, 600],
-  "Font": "CP437_12x12.png",
-  "FPS": 0,
-  "MenuBar": ["New", "Open", "Save", "Undo", "Redo"],
-  "Scheme": ["#121212", "#1b1b1b", "#2e2e2e", "#3c3c3c"]
-}
