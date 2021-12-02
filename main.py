@@ -18,7 +18,7 @@ class Main:
         self.screen = pg.display.set_mode((800, 600))
         pg.display.set_caption("Cell Engine")
         # Create main cell screen.
-        self.font = bf.Font(Path() / 'bitfont' / 'fonts' / 'CP437_8x8.png')
+        self.font = bf.Font(Path() / 'bitfont' / 'fonts' / 'CP437_12x12.png')
         self.cell_screen = bf.PygameSurface.refactor_size((800, 600), self.font)
         # Create the cell simulation.
         self.simulation = Simulation(self.cell_screen.size)
@@ -51,27 +51,39 @@ class Main:
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 self.terminate()
+
             elif event.type == pg.KEYDOWN:
                 if event.key == pg.K_F2:
                     self.screenshot()
                 elif event.key == pg.K_SPACE:
-                    self.simulation.update_one_action()
+                    self.simulation.update_one_turn()
+                    # self.simulation.update_one_action()
+
             elif event.type == pg.MOUSEBUTTONDOWN:
                 if event.button == 1:
+                    # Toggle a wall.
                     self.simulation.toggle_wall(self.cell_screen.get_cell_pos(event.pos))
-            elif event.type == pg.MOUSEMOTION:
-                if pg.mouse.get_pressed()[0]:
-                    self.simulation.toggle_wall(self.cell_screen.get_cell_pos(event.pos))
+                elif event.button == 3:
+                    # Toggle a Cell.
+                    pos = self.cell_screen.get_cell_pos(event.pos)
+                    # Cells shouldn't be on walls.
+                    if not self.simulation.grid[pos[0]][pos[1]]:
+                        self.simulation.toggle_cell(pos)
 
     def update(self):
         """Update all structures and variables."""
 
     def draw_simulation_cell(self, point: tuple[int, int]):
         """Draw a single cell from the simulation to the screen."""
-        if self.simulation.grid[point[0]][point[1]]:
-            self.cell_screen.draw_cell(point, (None, None, (128, 128, 128)))
+        # Draw the Cell if present.
+        if cell := self.simulation.pos_2_actor.get(point, False):
+            self.cell_screen.draw_cell(point, cell.tile)
+        # Draw the wall if present.
+        elif self.simulation.grid[point[0]][point[1]]:
+            self.cell_screen.draw_cell(point, (0, None, (128, 128, 128)))
         else:
-            self.cell_screen.draw_cell(point, (None, None, (0, 0, 0)))
+            # Clear the cell.
+            self.cell_screen.draw_cell(point, (0, None, (0, 0, 0)))
 
     def draw(self):
         """Draw the main display surface."""
