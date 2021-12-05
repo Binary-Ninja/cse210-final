@@ -1,6 +1,7 @@
 """The file that holds the simulation classes."""
 
 import heapq
+import itertools
 
 from pygame.math import Vector2
 
@@ -73,8 +74,11 @@ class Simulation:
         self.size = size
         # There exists a sentinel Turn counter.
         self.turn_counter = Turn(self)
+        # Store the order added for a stable sort.
+        self.stable_count = itertools.count()
         # Store the cells in a list, ordered by time units.
-        self.cells: list[Actor] = [self.turn_counter]
+        # The objects are tuples of (stable_count, actor).
+        self.cells: list[tuple[Actor, int]] = [(self.turn_counter, next(self.stable_count))]
         # Store the grid data in a 2d list.
         # 0 is an empty cell.
         # 1 is a wall.
@@ -116,9 +120,9 @@ class Simulation:
         """
         # Create new Cell from information.
         # Give time units so it has the proper global time.
-        cell = Cell(self, pos, time_units=self.cells[0].time_units)
-        # Insert the cell at the front of the turn order.
-        self.cells.insert(0, cell)
+        cell = Cell(self, pos, time_units=self.cells[0][0].time_units)
+        # Insert the cell in the turn order.
+        heapq.heappush(self.cells, (cell, next(self.stable_count)))
         # Update the quick lookup dictionary.
         self.pos_2_actor[pos] = cell
         # Mark the position for updates.
@@ -137,14 +141,14 @@ class Simulation:
         Returns the actor that took an action.
         """
         # Get the next actor.
-        actor = heapq.heappop(self.cells)
+        actor, stable_count = heapq.heappop(self.cells)
         # Take action if not dead.
         if actor.dead:
             return actor
         else:
             actor.take_action()
         # Resort the turn order.
-        heapq.heappush(self.cells, actor)
+        heapq.heappush(self.cells, (actor, stable_count))
         # Return the actor to take an action.
         return actor
 
