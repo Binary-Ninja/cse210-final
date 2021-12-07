@@ -67,7 +67,7 @@ class Main:
                     # Toggle a Cell.
                     pos = self.cell_screen.get_cell_pos(event.pos)
                     # Cells shouldn't be on walls.
-                    if not self.simulation.grid[pos[0]][pos[1]]:
+                    if self.simulation.grid[pos[0]][pos[1]][0] >= 0:
                         self.simulation.toggle_cell(pos)
 
     def update(self):
@@ -78,12 +78,14 @@ class Main:
         # Draw the Cell if present.
         if cell := self.simulation.pos_2_actor.get(point, False):
             self.cell_screen.draw_cell(point, cell.tile)
-        # Draw the wall if present.
-        elif self.simulation.grid[point[0]][point[1]]:
-            self.cell_screen.draw_cell(point, (0, None, (128, 128, 128)))
-        else:
-            # Clear the cell.
-            self.cell_screen.draw_cell(point, (0, None, (0, 0, 0)))
+        # Draw the cell.
+        elif cell := self.simulation.grid[point[0]][point[1]]:
+            # Draw the wall.
+            if cell[0] < 0:
+                self.cell_screen.draw_cell(point, (0, None, (128, 128, 128)))
+            # Draw the pheromones and food.
+            else:
+                self.cell_screen.draw_cell(point, (0xfe, (min(255, cell[0]),) * 3, cell[1:]))
 
     def draw(self):
         """Draw the main display surface."""

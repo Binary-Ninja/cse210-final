@@ -2,6 +2,7 @@
 
 import heapq
 import itertools
+import math
 
 from pygame.math import Vector2
 
@@ -36,6 +37,9 @@ class Turn(Actor):
         """Always spend 100tu, which is one turn."""
         self.time_units += 100
 
+    def __repr__(self):
+        return f"Turn({self.time_units})"
+
 
 class Cell(Actor):
     """The Cell class for the creatures in the Cell Engine."""
@@ -66,6 +70,9 @@ class Cell(Actor):
         self.move(vec_to_tuple(self.pos + Vector2(1, 0)))
         self.time_units += 100
 
+    def __repr__(self):
+        return f"Cell({self.time_units})"
+
 
 class Simulation:
     """The simulation class for the Cell Engine."""
@@ -80,9 +87,9 @@ class Simulation:
         # The objects are tuples of (stable_count, actor).
         self.cells: list[tuple[Actor, int]] = [(self.turn_counter, next(self.stable_count))]
         # Store the grid data in a 2d list.
-        # 0 is an empty cell.
-        # 1 is a wall.
-        self.grid = [[0 for y in range(size[1])] for x in range(size[0])]
+        # (food, r, g, b)
+        # R, G, B are pheromones, food is the amount of food, negative food == wall
+        self.grid = [[[0, 0, 0, 0] for y in range(size[1])] for x in range(size[0])]
         # Set of all cells that changed since last time.
         self.updates = set()
         # Dictionary of keys: pos to value: Actor.
@@ -119,7 +126,7 @@ class Simulation:
         Assume the position is valid.
         """
         # Create new Cell from information.
-        # Give time units so it has the proper global time.
+        # Give time units for the proper global time.
         cell = Cell(self, pos, time_units=self.cells[0][0].time_units)
         # Insert the cell in the turn order.
         heapq.heappush(self.cells, (cell, next(self.stable_count)))
@@ -131,7 +138,10 @@ class Simulation:
     def toggle_wall(self, pos: tuple[int, int]):
         """Toggle whether a wall exists at the given position."""
         # Toggle the wall.
-        self.grid[pos[0]][pos[1]] = not self.grid[pos[0]][pos[1]]
+        if self.grid[pos[0]][pos[1]][0] < 0:
+            self.grid[pos[0]][pos[1]][0] = 0
+        else:
+            self.grid[pos[0]][pos[1]][0] = -1
         # Mark the position for updates.
         self.updates.add(pos)
 
