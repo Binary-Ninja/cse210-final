@@ -2,9 +2,11 @@
 
 import heapq
 import itertools
-import math
+from typing import Sequence, Type
 
 from pygame.math import Vector2
+
+from organelle import *
 
 
 def vec_to_tuple(x: Vector2) -> tuple[int, int]:
@@ -22,6 +24,13 @@ class Actor:
         """Overload '<' for heapq sorting."""
         return self.time_units < other.time_units
 
+    def upkeep(self):
+        """What happens once per turn.
+
+        Should be overridden in the child classes.
+        """
+        raise NotImplementedError("Actor.upkeep should be overridden in the child class.")
+
     def take_action(self):
         """Should be overridden in the child classes."""
         raise NotImplementedError("Actor.take_action should be overridden in the child class.")
@@ -33,9 +42,16 @@ class Turn(Actor):
         super().__init__()
         self.simulation = simulation
 
+    def upkeep(self):
+        """Turn has no upkeep."""
+
     def take_action(self):
-        """Always spend 100tu, which is one turn."""
+        """Update the simulation things that happen every turn."""
+        # Always spend 100tu, which is one turn.
         self.time_units += 100
+        # Update all the upkeep for the cells.
+        for actor, _ in self.simulation.cells:
+            actor.upkeep()
 
     def __repr__(self):
         return f"Turn({self.time_units})"
@@ -43,11 +59,28 @@ class Turn(Actor):
 
 class Cell(Actor):
     """The Cell class for the creatures in the Cell Engine."""
-    def __init__(self, simulation: "Simulation", pos: tuple[int, int], time_units: int = 0):
+    def __init__(self, simulation: "Simulation",
+                 pos: tuple[int, int],
+                 energy: int = 0,
+                 dna: Sequence[Type[Organelle]] = tuple(),
+                 time_units: int = 0):
         super().__init__(time_units)
         self.simulation = simulation
         self.pos = Vector2(pos)
+        self.energy = energy
+        self.dna = dna
+        self.organelles = [organelle(self) for organelle in self.dna]
         self.tile = (0x40, (255, 128, 0), (128, 255, 0))
+
+    def upkeep(self):
+        # Upkeep for life.
+        self.energy -= 10
+        # Upkeep for each organelle.
+        for organelle in self.organelles:
+            self.energy -= organelle.upkeep
+        # If cell is dead, remove it.
+        if self.energy < 0:
+            self.simulation.remove_cell(self)
 
     def move(self, new_pos: tuple[int, int]):
         """Move the cell to a new position.
@@ -100,21 +133,23 @@ class Simulation:
 
         Assume the position is valid.
         """
-        if self.pos_2_actor.get(pos, False):
+        if cell := self.pos_2_actor.get(pos, False):
             # Remove cell.
-            self.remove_cell(pos)
+            self.remove_cell(cell, pos)
         else:
             # Add cell.
             self.add_cell(pos)
 
-    def remove_cell(self, pos: tuple[int, int]):
+    def remove_cell(self, cell: Cell, pos: tuple[int, int] = None):
         """Remove a Cell from the given position.
 
         Assume the position is valid.
         """
-        cell = self.pos_2_actor[pos]
         # Remove cell from turn order by marking it dead.
         cell.dead = True
+        # Get the proper pos.
+        if pos is None:
+            pos = vec_to_tuple(cell.pos)
         # Update the quick lookup dictionary.
         del self.pos_2_actor[pos]
         # Mark the position for updates.
@@ -127,7 +162,7 @@ class Simulation:
         """
         # Create new Cell from information.
         # Give time units for the proper global time.
-        cell = Cell(self, pos, time_units=self.cells[0][0].time_units)
+        cell = Cell(self, pos, dna=(Chloroplast,), time_units=self.cells[0][0].time_units)
         # Insert the cell in the turn order.
         heapq.heappush(self.cells, (cell, next(self.stable_count)))
         # Update the quick lookup dictionary.
