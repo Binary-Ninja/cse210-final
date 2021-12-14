@@ -35,7 +35,7 @@ class Main:
         # Create the player.
         self.player_dir = (1, 0)
         self.player_pos = Vector2(self.cell_screen.width // 2, self.cell_screen.height // 2)
-        self.player_inventory: list[Item] = [Item("Hoe"), Item("Bucket")]
+        self.player_inventory: list[Item] = [Item(HOE), Item(WATERING_CAN_EMPTY)]
         self.current_item = 0
 
         # Draw everything for the first time.
@@ -92,7 +92,34 @@ class Main:
                         self.draw_play()
                     # Use the currently selected item.
                     else:
-                        pass
+                        if self.player_inventory[self.current_item].name == HOE:
+                            # Get the affected tile's position.
+                            tile_pos = vec_to_tuple(self.player_pos + Vector2(self.player_dir))
+                            # Only update if the position is on the screen.
+                            if self.cell_screen.cell_in_bounds(tile_pos):
+                                # Toggle dirt and farmland.
+                                tile = self.simulation.grid[tile_pos[0]][tile_pos[1]]
+                                if tile == 1:
+                                    self.simulation.grid[tile_pos[0]][tile_pos[1]] = 2
+                                elif tile == 2:
+                                    self.simulation.grid[tile_pos[0]][tile_pos[1]] = 1
+                                # Update the position.
+                                self.simulation.updates.add(tile_pos)
+                        elif self.player_inventory[self.current_item].name == WATERING_CAN_EMPTY:
+                            # Get the affected tile's position.
+                            tile_pos = vec_to_tuple(self.player_pos + Vector2(self.player_dir))
+                            # Only update if the position is on the screen.
+                            if self.cell_screen.cell_in_bounds(tile_pos):
+                                # Fill the bucket.
+                                if self.simulation.grid[tile_pos[0]][tile_pos[1]] == 0:
+                                    # Redraw the tiles that were covered by the previous display.
+                                    for x in range(len(self.player_inventory[self.current_item])):
+                                        self.simulation.updates.add((x, 0))
+                                    # Remove the empty watering can.
+                                    del self.player_inventory[self.current_item]
+                                    # Add the full watering can.
+                                    self.player_inventory.insert(self.current_item,
+                                                                 Item(WATERING_CAN_FULL))
 
                 elif event.key == pg.K_x:
                     # Open and close the inventory.
@@ -115,7 +142,7 @@ class Main:
         # Calculate the new position.
         new_pos = vec_to_tuple(self.player_pos + Vector2(direction))
 
-        # Only update if the position is still on the screen.
+        # Only update if the position is on the screen.
         if self.cell_screen.cell_in_bounds(new_pos):
             # Update the old position.
             self.simulation.updates.add(vec_to_tuple(self.player_pos))
@@ -142,7 +169,9 @@ class Main:
                 self.cell_screen.draw_cell((x, y), GRID_TILES[self.simulation.grid[x][y]])
         # Draw the player.
         self.cell_screen.draw_cell(vec_to_tuple(self.player_pos), PLAYER_TILES[self.player_dir])
-        # Draw the currently selected item.
+
+    def draw_current_item(self):
+        """Draw the currently selected item."""
         self.cell_screen.write_cells(bytes(self.player_inventory[self.current_item].get_name(), "utf8"),
                                      (0, 0), (None, (255, 255, 255), None))
 
@@ -178,6 +207,10 @@ class Main:
             self.draw_simulation_cell(point)
         # Clear the simulation update list.
         self.simulation.updates = set()
+
+        # Draw the windows.
+        if not self.inventory:
+            self.draw_current_item()
 
         # Update the surf.
         self.cell_screen.update(self.screen)

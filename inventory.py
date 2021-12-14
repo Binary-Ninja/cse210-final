@@ -3,7 +3,15 @@
 __all__ = [
     "Item",
     "Seed",
+
+    "HOE",
+    "WATERING_CAN_EMPTY",
+    "WATERING_CAN_FULL",
 ]
+
+HOE = "Hoe"
+WATERING_CAN_EMPTY = "Empty Watering Can"
+WATERING_CAN_FULL = "Full Watering Can"
 
 
 class Item:
