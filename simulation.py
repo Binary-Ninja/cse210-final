@@ -9,9 +9,9 @@ PLAYER_TILES = {
     (0, 1): (0x1f, (255, 255, 255), None),
 }
 
-WATER_TILE = (0xf7, (0, 0, 255), None)
-DIRT_TILE = (0xfa, (128, 64, 0), None)
-FARMLAND_TILE = (0xf7, (128, 64, 0), None)
+WATER_TILE = (0xf7, (0, 0, 255), (0, 0, 0))
+DIRT_TILE = (0xfa, (128, 64, 0), (0, 0, 0))
+FARMLAND_TILE = (0xf7, (128, 64, 0), (0, 0, 0))
 
 GRID_TILES = {
     0: WATER_TILE,
@@ -26,9 +26,37 @@ def vec_to_tuple(x: Vector2) -> tuple[int, int]:
 
 
 class Plant:
-    def __init__(self, pos: tuple[int, int]):
-        self.pos = Vector2(pos)
-        self.tile = (0x06, (0, 255, 0), None)
+    def __init__(self, simulation: "Simulation", pos: tuple[int, int], stages: list[dict]):
+        self.simulation = simulation
+        self.pos = pos
+        self.stages = stages
+
+        self.done_growing = False
+        self.stage = 0
+        self.tile = self.stages[self.stage]["tile"]
+        self.last_time = self.simulation.global_time
+        self.needs_water = self.stages[self.stage].get("water", False)
+
+    def update(self):
+        """Update the plant."""
+        if self.done_growing:
+            return
+
+        if self.simulation.global_time - self.last_time >= self.stages[self.stage]["time"] and \
+                not self.needs_water:
+            # Update the simulation.
+            self.simulation.updates.add(self.pos)
+            # Update the variables.
+            self.stage += 1
+            self.tile = self.tile if (new_tile := self.stages[self.stage].get("tile", None)) is None \
+                else new_tile
+            self.last_time = self.simulation.global_time
+            self.needs_water = self.stages[self.stage].get("water", False)
+
+            # Make the plant stop growing.
+            if self.stage == len(self.stages) - 1:
+                self.done_growing = True
+                return
 
 
 class Simulation:
@@ -37,10 +65,8 @@ class Simulation:
         """Create an empty simulation of a given size."""
         # The size of the simulation.
         self.size = size
-        # Store the plants in a list.
-        self.plants: list[Plant] = []
-        # Dictionary of keys: pos to value: Plant.
-        self.pos_2_plant: dict[tuple[int, int], Plant] = {}
+        # Quick lookup of plants based on position.
+        self.plants: dict[tuple[int, int], Plant] = {}
         # Store the grid data in a 2d list.
         self.grid = [[0 for _ in range(size[1])] for _ in range(size[0])]
         # Set of all cells that changed since last time.
@@ -48,6 +74,20 @@ class Simulation:
         # The global time.
         self.global_time = 0
 
-    def update_one_turn(self, amount: int = 100):
-        """Update the simulation by one turn (100tu)."""
+    def add_plant(self, pos: tuple[int, int], stages: list[dict]):
+        """Add a plant to the world."""
+        self.plants[pos] = Plant(self, pos, stages)
+        self.updates.add(pos)
+
+    def remove_plant(self, pos: tuple[int, int]):
+        """Remove a plant from the world."""
+        if self.plants.get(pos, False):
+            del self.plants[pos]
+            self.updates.add(pos)
+
+    def update_ticks(self, amount: int = 1):
+        """Update the simulation by some amount of ticks."""
         self.global_time += amount
+        # Update all the plants.
+        for plant in self.plants.values():
+            plant.update()

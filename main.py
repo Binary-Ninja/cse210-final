@@ -35,7 +35,11 @@ class Main:
         # Create the player.
         self.player_dir = (1, 0)
         self.player_pos = Vector2(self.cell_screen.width // 2, self.cell_screen.height // 2)
-        self.player_inventory: list[Item] = [Item(HOE), Item(WATERING_CAN_EMPTY)]
+        self.player_inventory: list[Item] = [
+            Item(HOE),
+            Item(WATERING_CAN_EMPTY),
+            Seed(*PUMPKIN_DATA, 10),
+        ]
         self.current_item = 0
 
         # Draw everything for the first time.
@@ -43,6 +47,7 @@ class Main:
 
         # Create other variables.
         self.inventory = False
+        self.colors = False
         self.clock = pg.time.Clock()
         self.debug = True
         self.debug_font = pg.font.Font(None, 24)
@@ -75,6 +80,9 @@ class Main:
             elif event.type == pg.KEYDOWN:
                 if event.key == pg.K_F2:
                     self.screenshot()
+
+                elif event.key == pg.K_SPACE:
+                    self.simulation.update_ticks()
 
                 elif event.key == pg.K_UP:
                     self.movement_key((0, -1), -1)
@@ -130,6 +138,10 @@ class Main:
                     else:
                         self.draw_play()
 
+                elif event.key == pg.K_c:
+                    # Toggle showing the plant statuses.
+                    self.colors = not self.colors
+
     def movement_key(self, pos_dir: tuple[int, int], inv_dir: int):
         """Handle the movement keys."""
         if self.inventory:
@@ -151,6 +163,8 @@ class Main:
             self.player_dir = direction
             # Draw the player.
             self.cell_screen.draw_cell(new_pos, PLAYER_TILES[self.player_dir])
+            # Update the simulation.
+            self.simulation.update_ticks()
 
     def move_inventory(self, direction: int):
         """Move the inventory cursor up and down, wrapping around."""
@@ -167,20 +181,29 @@ class Main:
         for x in range(self.simulation.size[0]):
             for y in range(self.simulation.size[1]):
                 self.cell_screen.draw_cell((x, y), GRID_TILES[self.simulation.grid[x][y]])
+        # Draw the plants.
+        for pos, plant in self.simulation.plants.items():
+            status = None
+            if self.colors:
+                if plant.needs_water:
+                    status = (0, 0, 255)
+                if plant.done_growing:
+                    status = (0, 255, 0)
+            self.cell_screen.draw_cell(pos, (plant.tile[0], plant.tile[1], status))
         # Draw the player.
         self.cell_screen.draw_cell(vec_to_tuple(self.player_pos), PLAYER_TILES[self.player_dir])
 
     def draw_current_item(self):
         """Draw the currently selected item."""
         self.cell_screen.write_cells(bytes(self.player_inventory[self.current_item].get_name(), "utf8"),
-                                     (0, 0), (None, (255, 255, 255), None))
+                                     (0, 0), (None, (255, 255, 255), (0, 0, 0)))
 
     def draw_inventory(self):
         """Draw the inventory."""
         # Draw a black box sized for the inventory screen.
         points = bf.draw.draw_rect((0, 0, len(max(self.player_inventory, key=lambda x: len(x))) + 2,
                                     len(self.player_inventory)), True)
-        self.cell_screen.draw_cells(points, (0, None, None))
+        self.cell_screen.draw_cells(points, (0, None, (0, 0, 0)))
         # Draw all the items.
         for index, item in enumerate(self.player_inventory):
             color = (128, 128, 128)
@@ -194,8 +217,14 @@ class Main:
     def draw_simulation_cell(self, point: tuple[int, int]):
         """Draw a single cell from the simulation to the screen."""
         # Draw the plant if present.
-        if plant := self.simulation.pos_2_plant.get(point, False):
-            self.cell_screen.draw_cell(point, plant.tile)
+        if plant := self.simulation.plants.get(point, False):
+            status = (0, 0, 0)
+            if self.colors:
+                if plant.needs_water:
+                    status = (0, 0, 255)
+                if plant.done_growing:
+                    status = (0, 255, 0)
+            self.cell_screen.draw_cell(point, (plant.tile[0], plant.tile[1], status))
         # Draw the cell.
         else:
             self.cell_screen.draw_cell(point, GRID_TILES[self.simulation.grid[point[0]][point[1]]])
