@@ -9,7 +9,8 @@ from pygame.math import Vector2
 
 import bitfont as bf
 
-from simulation import Simulation, vec_to_tuple, PLAYER_TILES, WATER_TILE, DIRT_TILE
+from simulation import Simulation, vec_to_tuple, PLAYER_TILES, GRID_TILES
+from inventory import *
 
 
 class Main:
@@ -18,9 +19,11 @@ class Main:
         # Create main screen.
         self.screen = pg.display.set_mode((800, 600))
         pg.display.set_caption("Final Project")
+
         # Create main cell screen.
         self.font = bf.Font(Path() / 'bitfont' / 'fonts' / 'CP437_12x12.png')
         self.cell_screen = bf.PygameSurface.refactor_size((800, 600), self.font)
+
         # Create the cell simulation.
         self.simulation = Simulation(self.cell_screen.size)
         # Create the island.
@@ -28,20 +31,18 @@ class Main:
         for point in points:
             if self.cell_screen.cell_in_bounds(point):
                 self.simulation.grid[point[0]][point[1]] = 1
+
         # Create the player.
         self.player_dir = (1, 0)
         self.player_pos = Vector2(self.cell_screen.width // 2, self.cell_screen.height // 2)
+        self.player_inventory: list[Item] = [Item("Hoe"), Item("Bucket")]
+        self.current_item = 0
+
         # Draw everything for the first time.
-        for x in range(self.simulation.size[0]):
-            for y in range(self.simulation.size[1]):
-                cell = self.simulation.grid[x][y]
-                if cell == 0:
-                    tile = WATER_TILE
-                else:
-                    tile = DIRT_TILE
-                self.cell_screen.draw_cell((x, y), tile)
-        self.cell_screen.draw_cell(vec_to_tuple(self.player_pos), PLAYER_TILES[self.player_dir])
+        self.draw_play()
+
         # Create other variables.
+        self.inventory = False
         self.clock = pg.time.Clock()
         self.debug = True
         self.debug_font = pg.font.Font(None, 24)
@@ -76,20 +77,38 @@ class Main:
                     self.screenshot()
 
                 elif event.key == pg.K_UP:
-                    self.move_player((0, -1))
+                    self.movement_key((0, -1), -1)
                 elif event.key == pg.K_DOWN:
-                    self.move_player((0, 1))
+                    self.movement_key((0, 1), 1)
                 elif event.key == pg.K_LEFT:
-                    self.move_player((-1, 0))
+                    self.movement_key((-1, 0), -1)
                 elif event.key == pg.K_RIGHT:
-                    self.move_player((1, 0))
+                    self.movement_key((1, 0), 1)
 
                 elif event.key == pg.K_z:
+                    # If in the inventory screen, exit it.
+                    if self.inventory:
+                        self.inventory = False
+                        self.draw_play()
                     # Use the currently selected item.
-                    pass
+                    else:
+                        pass
+
                 elif event.key == pg.K_x:
                     # Open and close the inventory.
-                    pass
+                    self.inventory = not self.inventory
+
+                    if self.inventory:
+                        self.draw_inventory()
+                    else:
+                        self.draw_play()
+
+    def movement_key(self, pos_dir: tuple[int, int], inv_dir: int):
+        """Handle the movement keys."""
+        if self.inventory:
+            self.move_inventory(inv_dir)
+        else:
+            self.move_player(pos_dir)
 
     def move_player(self, direction: tuple[int, int]):
         """Move the player in the given direction, staying on the screen."""
@@ -106,8 +125,42 @@ class Main:
             # Draw the player.
             self.cell_screen.draw_cell(new_pos, PLAYER_TILES[self.player_dir])
 
+    def move_inventory(self, direction: int):
+        """Move the inventory cursor up and down, wrapping around."""
+        self.current_item += direction
+        self.current_item %= len(self.player_inventory)
+        self.draw_inventory()
+
     def update(self):
         """Update all structures and variables."""
+
+    def draw_play(self):
+        """Draw the whole playing scene."""
+        # Draw the world.
+        for x in range(self.simulation.size[0]):
+            for y in range(self.simulation.size[1]):
+                self.cell_screen.draw_cell((x, y), GRID_TILES[self.simulation.grid[x][y]])
+        # Draw the player.
+        self.cell_screen.draw_cell(vec_to_tuple(self.player_pos), PLAYER_TILES[self.player_dir])
+        # Draw the currently selected item.
+        self.cell_screen.write_cells(bytes(self.player_inventory[self.current_item].get_name(), "utf8"),
+                                     (0, 0), (None, (255, 255, 255), None))
+
+    def draw_inventory(self):
+        """Draw the inventory."""
+        # Draw a black box sized for the inventory screen.
+        points = bf.draw.draw_rect((0, 0, len(max(self.player_inventory, key=lambda x: len(x))) + 2,
+                                    len(self.player_inventory)), True)
+        self.cell_screen.draw_cells(points, (0, None, None))
+        # Draw all the items.
+        for index, item in enumerate(self.player_inventory):
+            color = (128, 128, 128)
+            if index == self.current_item:
+                color = (255, 255, 255)
+            self.cell_screen.write_cells(bytes(f"  {item.get_name()}", "utf8"),
+                                         (0, index), (0, color, None))
+        # Draw the currently selected item.
+        self.cell_screen.draw_cell((0, self.current_item), (0x10, (255, 255, 255), None))
 
     def draw_simulation_cell(self, point: tuple[int, int]):
         """Draw a single cell from the simulation to the screen."""
@@ -116,11 +169,7 @@ class Main:
             self.cell_screen.draw_cell(point, plant.tile)
         # Draw the cell.
         else:
-            cell = self.simulation.grid[point[0]][point[1]]
-            if cell == 0:
-                self.cell_screen.draw_cell(point, WATER_TILE)
-            else:
-                self.cell_screen.draw_cell(point, DIRT_TILE)
+            self.cell_screen.draw_cell(point, GRID_TILES[self.simulation.grid[point[0]][point[1]]])
 
     def draw(self):
         """Draw the main display surface."""
