@@ -8,7 +8,7 @@ __all__ = [
     "WATERING_CAN_EMPTY",
     "WATERING_CAN_FULL",
 
-    "PUMPKIN_DATA",
+    "ALL_SEEDS",
 ]
 
 HOE = "Hoe"
@@ -18,10 +18,27 @@ WATERING_CAN_FULL = "Full Watering Can"
 SEED_TYPE = tuple[str, tuple[int, ...], list[dict]]
 
 PUMPKIN_DATA: SEED_TYPE = ("Pumpkin", (2,), [
-    {"time": 60, "tile": (0xa2, (0, 255, 0), None), "water": True},
-    {"time": 60, "tile": (0xa2, (255, 128, 0), None), "water": True},
+    {"time": 120, "tile": (0xa2, (0, 255, 0), None), "water": True},
+    {"time": 120, "tile": (0xa2, (255, 128, 0), None), "water": True},
     {"tile": (0x4f, (255, 128, 0), None)},
 ])
+
+WHEAT_DATA: SEED_TYPE = ("Wheat", (2,), [
+    {"time": 100, "tile": (0xb0, (220, 220, 100), None), "water": True},
+    {"time": 100, "tile": (0xb1, (220, 220, 100), None)},
+    {"tile": (0xb2, (220, 220, 100), None)},
+])
+
+GRASS_DATA: SEED_TYPE = ("Grass", (1, 2), [
+    {"time": 0, "tile": (0x22, (0, 128, 0), None)},
+    {"tile": (0x22, (0, 128, 0), None)},
+])
+
+ALL_SEEDS = (
+    PUMPKIN_DATA,
+    WHEAT_DATA,
+    GRASS_DATA,
+)
 
 
 class Item:

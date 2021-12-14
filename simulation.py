@@ -59,7 +59,7 @@ class Plant:
         if self.done_growing:
             return
 
-        if self.simulation.global_time - self.last_time >= self.stages[self.stage]["time"] and \
+        if self.simulation.global_time - self.last_time > self.stages[self.stage]["time"] and \
                 not self.needs_water:
             # Update the simulation.
             self.simulation.updates.add(self.pos)

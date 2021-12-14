@@ -35,11 +35,9 @@ class Main:
         # Create the player.
         self.player_dir = (1, 0)
         self.player_pos = Vector2(self.cell_screen.width // 2, self.cell_screen.height // 2)
-        self.player_inventory: list[Item] = [
-            Item(HOE),
-            Item(WATERING_CAN_EMPTY),
-            Seed(*PUMPKIN_DATA, 10),
-        ]
+        self.player_inventory: list[Item] = [Item(HOE), Item(WATERING_CAN_EMPTY)]
+        for seed_data in ALL_SEEDS:
+            self.player_inventory.append(Seed(*seed_data, 10))
         self.current_item = 0
 
         # Draw everything for the first time.
@@ -109,6 +107,9 @@ class Main:
                 elif event.key == pg.K_c:
                     # Toggle showing the plant statuses.
                     self.colors = not self.colors
+                    # Mark all plants for update.
+                    for pos in self.simulation.plants:
+                        self.simulation.updates.add(pos)
 
     def handle_action_key(self):
         """Handles all the action key logic."""
@@ -137,8 +138,10 @@ class Main:
                         self.clear_current_item()
                         # Decrement the seed count.
                         item.count -= 1
+                        # Delete the stack.
                         if item.count == 0:
                             del self.player_inventory[self.current_item]
+                            self.current_item = 0
 
             elif item.name == HOE:
                 # Harvest the plant.
@@ -179,6 +182,8 @@ class Main:
                     plant.needs_water = False
                     # Redraw the tiles that were covered by the previous display.
                     self.clear_current_item()
+                    # Update for color status.
+                    self.simulation.updates.add(tile_pos)
                     # Remove the full watering can.
                     del self.player_inventory[self.current_item]
                     # Add the empty watering can.
@@ -297,11 +302,11 @@ class Main:
         # Show FPS.
         if self.debug:
             self.screen.blit(self.debug_font.render(f'{self.clock.get_fps():.2f}',
-                                                    False, (255, 255, 255), (0, 0, 0)), (750, 580))
+                                                    False, (255, 255, 255), (0, 0, 0)), (750, 585))
             self.screen.blit(self.debug_font.render(f'T: {self.simulation.global_time}',
-                                                    False, (255, 255, 255), (0, 0, 0)), (750, 565))
+                                                    False, (255, 255, 255), (0, 0, 0)), (0, 585))
             self.screen.blit(self.debug_font.render(f'C: {int(self.colors)}',
-                                                    False, (255, 255, 255), (0, 0, 0)), (750, 550))
+                                                    False, (255, 255, 255), (0, 0, 0)), (0, 570))
         # Tick clock for timing and flip the display.
         pg.display.flip()
         self.clock.tick()
