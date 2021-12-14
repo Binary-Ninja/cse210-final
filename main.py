@@ -82,6 +82,7 @@ class Main:
                     self.screenshot()
 
                 elif event.key == pg.K_SPACE:
+                    # Advance time.
                     self.simulation.update_ticks()
 
                 elif event.key == pg.K_UP:
@@ -94,40 +95,7 @@ class Main:
                     self.movement_key((1, 0), 1)
 
                 elif event.key == pg.K_z:
-                    # If in the inventory screen, exit it.
-                    if self.inventory:
-                        self.inventory = False
-                        self.draw_play()
-                    # Use the currently selected item.
-                    else:
-                        if self.player_inventory[self.current_item].name == HOE:
-                            # Get the affected tile's position.
-                            tile_pos = vec_to_tuple(self.player_pos + Vector2(self.player_dir))
-                            # Only update if the position is on the screen.
-                            if self.cell_screen.cell_in_bounds(tile_pos):
-                                # Toggle dirt and farmland.
-                                tile = self.simulation.grid[tile_pos[0]][tile_pos[1]]
-                                if tile == 1:
-                                    self.simulation.grid[tile_pos[0]][tile_pos[1]] = 2
-                                elif tile == 2:
-                                    self.simulation.grid[tile_pos[0]][tile_pos[1]] = 1
-                                # Update the position.
-                                self.simulation.updates.add(tile_pos)
-                        elif self.player_inventory[self.current_item].name == WATERING_CAN_EMPTY:
-                            # Get the affected tile's position.
-                            tile_pos = vec_to_tuple(self.player_pos + Vector2(self.player_dir))
-                            # Only update if the position is on the screen.
-                            if self.cell_screen.cell_in_bounds(tile_pos):
-                                # Fill the bucket.
-                                if self.simulation.grid[tile_pos[0]][tile_pos[1]] == 0:
-                                    # Redraw the tiles that were covered by the previous display.
-                                    for x in range(len(self.player_inventory[self.current_item])):
-                                        self.simulation.updates.add((x, 0))
-                                    # Remove the empty watering can.
-                                    del self.player_inventory[self.current_item]
-                                    # Add the full watering can.
-                                    self.player_inventory.insert(self.current_item,
-                                                                 Item(WATERING_CAN_FULL))
+                    self.handle_action_key()
 
                 elif event.key == pg.K_x:
                     # Open and close the inventory.
@@ -141,6 +109,83 @@ class Main:
                 elif event.key == pg.K_c:
                     # Toggle showing the plant statuses.
                     self.colors = not self.colors
+
+    def handle_action_key(self):
+        """Handles all the action key logic."""
+        # If in the inventory screen, exit it.
+        if self.inventory:
+            self.inventory = False
+            self.draw_play()
+        # Use the currently selected item.
+        else:
+            # Get the affected tile's position.
+            tile_pos = vec_to_tuple(self.player_pos + Vector2(self.player_dir))
+            # Only perform an action if the position is on the screen.
+            if not self.cell_screen.cell_in_bounds(tile_pos):
+                return
+
+            item = self.player_inventory[self.current_item]
+
+            if isinstance(item, Seed):
+                # Make sure the space is clear.
+                if not self.simulation.plants.get(tile_pos, None):
+                    # Make sure the plant can be placed here.
+                    if self.simulation.grid[tile_pos[0]][tile_pos[1]] in item.valid_tiles:
+                        # Create a new plant.
+                        self.simulation.add_plant(tile_pos, *item)
+                        # Redraw the tiles that were covered by the previous display.
+                        self.clear_current_item()
+                        # Decrement the seed count.
+                        item.count -= 1
+                        if item.count == 0:
+                            del self.player_inventory[self.current_item]
+
+            elif item.name == HOE:
+                # Harvest the plant.
+                if plant := self.simulation.plants.get(tile_pos, None):
+                    # Make the stacks stack nicely.
+                    for item in self.player_inventory:
+                        if item.name == plant.name:
+                            item.count += 4 if plant.done_growing else 1
+                            break
+                    else:
+                        self.player_inventory.append(Seed(*plant, 4 if plant.done_growing else 1))
+                    # Remove the plant.
+                    self.simulation.remove_plant(plant)
+                # Toggle dirt and farmland.
+                else:
+                    tile = self.simulation.grid[tile_pos[0]][tile_pos[1]]
+                    if tile == 1:
+                        self.simulation.grid[tile_pos[0]][tile_pos[1]] = 2
+                    elif tile == 2:
+                        self.simulation.grid[tile_pos[0]][tile_pos[1]] = 1
+                    # Update the position.
+                    self.simulation.updates.add(tile_pos)
+
+            elif item.name == WATERING_CAN_EMPTY:
+                # Fill the bucket.
+                if self.simulation.grid[tile_pos[0]][tile_pos[1]] == 0:
+                    # Redraw the tiles that were covered by the previous display.
+                    self.clear_current_item()
+                    # Remove the empty watering can.
+                    del self.player_inventory[self.current_item]
+                    # Add the full watering can.
+                    self.player_inventory.insert(self.current_item, Item(WATERING_CAN_FULL))
+
+            elif item.name == WATERING_CAN_FULL:
+                # Water plants.
+                if plant := self.simulation.plants.get(tile_pos, None):
+                    # Free the plant to continue growing.
+                    plant.needs_water = False
+                    # Redraw the tiles that were covered by the previous display.
+                    self.clear_current_item()
+                    # Remove the full watering can.
+                    del self.player_inventory[self.current_item]
+                    # Add the empty watering can.
+                    self.player_inventory.insert(self.current_item, Item(WATERING_CAN_EMPTY))
+
+            # Advance time.
+            self.simulation.update_ticks()
 
     def movement_key(self, pos_dir: tuple[int, int], inv_dir: int):
         """Handle the movement keys."""
@@ -163,7 +208,7 @@ class Main:
             self.player_dir = direction
             # Draw the player.
             self.cell_screen.draw_cell(new_pos, PLAYER_TILES[self.player_dir])
-            # Update the simulation.
+            # Advance time.
             self.simulation.update_ticks()
 
     def move_inventory(self, direction: int):
@@ -193,6 +238,12 @@ class Main:
         # Draw the player.
         self.cell_screen.draw_cell(vec_to_tuple(self.player_pos), PLAYER_TILES[self.player_dir])
 
+    def clear_current_item(self):
+        """Redraws the cells under the current item display."""
+        # Redraw the tiles that were covered by the previous display.
+        for x in range(len(self.player_inventory[self.current_item])):
+            self.simulation.updates.add((x, 0))
+
     def draw_current_item(self):
         """Draw the currently selected item."""
         self.cell_screen.write_cells(bytes(self.player_inventory[self.current_item].get_name(), "utf8"),
@@ -217,7 +268,7 @@ class Main:
     def draw_simulation_cell(self, point: tuple[int, int]):
         """Draw a single cell from the simulation to the screen."""
         # Draw the plant if present.
-        if plant := self.simulation.plants.get(point, False):
+        if plant := self.simulation.plants.get(point, None):
             status = (0, 0, 0)
             if self.colors:
                 if plant.needs_water:
@@ -247,6 +298,10 @@ class Main:
         if self.debug:
             self.screen.blit(self.debug_font.render(f'{self.clock.get_fps():.2f}',
                                                     False, (255, 255, 255), (0, 0, 0)), (750, 580))
+            self.screen.blit(self.debug_font.render(f'T: {self.simulation.global_time}',
+                                                    False, (255, 255, 255), (0, 0, 0)), (750, 565))
+            self.screen.blit(self.debug_font.render(f'C: {int(self.colors)}',
+                                                    False, (255, 255, 255), (0, 0, 0)), (750, 550))
         # Tick clock for timing and flip the display.
         pg.display.flip()
         self.clock.tick()

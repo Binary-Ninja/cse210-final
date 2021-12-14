@@ -26,16 +26,33 @@ def vec_to_tuple(x: Vector2) -> tuple[int, int]:
 
 
 class Plant:
-    def __init__(self, simulation: "Simulation", pos: tuple[int, int], stages: list[dict]):
+    def __init__(self, simulation: "Simulation", pos: tuple[int, int],
+                 name: str, valid_tiles: tuple[int, ...], stages: list[dict]):
         self.simulation = simulation
         self.pos = pos
+
+        # Seed data.
+        self.name = name
+        self.valid_tiles = valid_tiles
         self.stages = stages
 
+        # Other instance variables.
         self.done_growing = False
         self.stage = 0
         self.tile = self.stages[self.stage]["tile"]
         self.last_time = self.simulation.global_time
         self.needs_water = self.stages[self.stage].get("water", False)
+
+    def __getitem__(self, item):
+        """Convenience method for unpacking the data."""
+        if item == 0:
+            return self.name
+        elif item == 1:
+            return self.valid_tiles
+        elif item == 2:
+            return self.stages
+        else:
+            raise IndexError("Valid items are 0, 1, and 2.")
 
     def update(self):
         """Update the plant."""
@@ -74,16 +91,16 @@ class Simulation:
         # The global time.
         self.global_time = 0
 
-    def add_plant(self, pos: tuple[int, int], stages: list[dict]):
+    def add_plant(self, pos: tuple[int, int],
+                  name: str, valid_tiles: tuple[int, ...], stages: list[dict]):
         """Add a plant to the world."""
-        self.plants[pos] = Plant(self, pos, stages)
+        self.plants[pos] = Plant(self, pos, name, valid_tiles, stages)
         self.updates.add(pos)
 
-    def remove_plant(self, pos: tuple[int, int]):
+    def remove_plant(self, plant: Plant):
         """Remove a plant from the world."""
-        if self.plants.get(pos, False):
-            del self.plants[pos]
-            self.updates.add(pos)
+        del self.plants[plant.pos]
+        self.updates.add(plant.pos)
 
     def update_ticks(self, amount: int = 1):
         """Update the simulation by some amount of ticks."""

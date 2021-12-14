@@ -23,3 +23,5 @@ Use the C key to view the statuses of the plants.
 Blue plants need water and green plants are done growing.
 
 Use the SPACE key to advance time.
+
+Use the F2 key to take a screenshot. A `screenshots` directory will be created for the images.
