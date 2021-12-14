@@ -1,12 +1,15 @@
 """The file that holds the simulation classes."""
 
-import heapq
-import itertools
-from typing import Sequence, Type
-
 from pygame.math import Vector2
 
-from organelle import *
+PLAYER_TILES = {
+    (1, 0): (0x10, (255, 255, 255), None),
+    (-1, 0): (0x11, (255, 255, 255), None),
+    (0, -1): (0x1e, (255, 255, 255), None),
+    (0, 1): (0x1f, (255, 255, 255), None),
+}
+WATER_TILE = (0xf7, (0, 0, 255), None)
+DIRT_TILE = (0xfa, (128, 64, 0), None)
 
 
 def vec_to_tuple(x: Vector2) -> tuple[int, int]:
@@ -14,191 +17,29 @@ def vec_to_tuple(x: Vector2) -> tuple[int, int]:
     return int(x[0]), int(x[1])
 
 
-class Actor:
-    """The Actor superclass."""
-    def __init__(self, time_units: int = 0):
-        self.time_units = time_units
-        self.dead = False
-
-    def __lt__(self, other):
-        """Overload '<' for heapq sorting."""
-        return self.time_units < other.time_units
-
-    def upkeep(self):
-        """What happens once per turn.
-
-        Should be overridden in the child classes.
-        """
-        raise NotImplementedError("Actor.upkeep should be overridden in the child class.")
-
-    def take_action(self):
-        """Should be overridden in the child classes."""
-        raise NotImplementedError("Actor.take_action should be overridden in the child class.")
-
-
-class Turn(Actor):
-    """The Turn counter class, handling things once per turn."""
-    def __init__(self, simulation: "Simulation"):
-        super().__init__()
-        self.simulation = simulation
-
-    def upkeep(self):
-        """Turn has no upkeep."""
-
-    def take_action(self):
-        """Update the simulation things that happen every turn."""
-        # Always spend 100tu, which is one turn.
-        self.time_units += 100
-        # Update all the upkeep for the cells.
-        for actor, _ in self.simulation.cells:
-            actor.upkeep()
-
-    def __repr__(self):
-        return f"Turn({self.time_units})"
-
-
-class Cell(Actor):
-    """The Cell class for the creatures in the Cell Engine."""
-    def __init__(self, simulation: "Simulation",
-                 pos: tuple[int, int],
-                 energy: int = 0,
-                 dna: Sequence[Type[Organelle]] = tuple(),
-                 time_units: int = 0):
-        super().__init__(time_units)
-        self.simulation = simulation
+class Plant:
+    def __init__(self, pos: tuple[int, int]):
         self.pos = Vector2(pos)
-        self.energy = energy
-        self.dna = dna
-        self.organelles = [organelle(self) for organelle in self.dna]
-        self.tile = (0x40, (255, 128, 0), (128, 255, 0))
-
-    def upkeep(self):
-        # Upkeep for life.
-        self.energy -= 10
-        # Upkeep for each organelle.
-        for organelle in self.organelles:
-            self.energy -= organelle.upkeep
-        # If cell is dead, remove it.
-        if self.energy < 0:
-            self.simulation.remove_cell(self)
-
-    def move(self, new_pos: tuple[int, int]):
-        """Move the cell to a new position.
-
-        Assume valid position.
-        """
-        # Update old position.
-        self.simulation.updates.add(vec_to_tuple(self.pos))
-        # Remove old quick lookup.
-        del self.simulation.pos_2_actor[vec_to_tuple(self.pos)]
-        # Modify position.
-        self.pos = Vector2(new_pos)
-        # Add new quick lookup.
-        self.simulation.pos_2_actor[new_pos] = self
-        # Update new position.
-        self.simulation.updates.add(vec_to_tuple(self.pos))
-
-    def take_action(self):
-        """Perform the cell's next action."""
-        self.move(vec_to_tuple(self.pos + Vector2(1, 0)))
-        self.time_units += 100
-
-    def __repr__(self):
-        return f"Cell({self.time_units})"
+        self.tile = (0x06, (0, 255, 0), None)
 
 
 class Simulation:
     """The simulation class for the Cell Engine."""
     def __init__(self, size: tuple[int, int]):
         """Create an empty simulation of a given size."""
+        # The size of the simulation.
         self.size = size
-        # There exists a sentinel Turn counter.
-        self.turn_counter = Turn(self)
-        # Store the order added for a stable sort.
-        self.stable_count = itertools.count()
-        # Store the cells in a list, ordered by time units.
-        # The objects are tuples of (stable_count, actor).
-        self.cells: list[tuple[Actor, int]] = [(self.turn_counter, next(self.stable_count))]
+        # Store the plants in a list.
+        self.plants: list[Plant] = []
+        # Dictionary of keys: pos to value: Plant.
+        self.pos_2_plant: dict[tuple[int, int], Plant] = {}
         # Store the grid data in a 2d list.
-        # (food, r, g, b)
-        # R, G, B are pheromones, food is the amount of food, negative food == wall
-        self.grid = [[[0, 0, 0, 0] for y in range(size[1])] for x in range(size[0])]
+        self.grid = [[0 for y in range(size[1])] for x in range(size[0])]
         # Set of all cells that changed since last time.
         self.updates = set()
-        # Dictionary of keys: pos to value: Actor.
-        self.pos_2_actor = {}
+        # The global time.
+        self.global_time = 0
 
-    def toggle_cell(self, pos: tuple[int, int]):
-        """Add or remove a cell at the given position.
-
-        Assume the position is valid.
-        """
-        if cell := self.pos_2_actor.get(pos, False):
-            # Remove cell.
-            self.remove_cell(cell, pos)
-        else:
-            # Add cell.
-            self.add_cell(pos)
-
-    def remove_cell(self, cell: Cell, pos: tuple[int, int] = None):
-        """Remove a Cell from the given position.
-
-        Assume the position is valid.
-        """
-        # Remove cell from turn order by marking it dead.
-        cell.dead = True
-        # Get the proper pos.
-        if pos is None:
-            pos = vec_to_tuple(cell.pos)
-        # Update the quick lookup dictionary.
-        del self.pos_2_actor[pos]
-        # Mark the position for updates.
-        self.updates.add(pos)
-
-    def add_cell(self, pos: tuple[int, int]):
-        """Add a Cell to the given position.
-
-        Assume the position is valid.
-        """
-        # Create new Cell from information.
-        # Give time units for the proper global time.
-        cell = Cell(self, pos, dna=(Chloroplast,), time_units=self.cells[0][0].time_units)
-        # Insert the cell in the turn order.
-        heapq.heappush(self.cells, (cell, next(self.stable_count)))
-        # Update the quick lookup dictionary.
-        self.pos_2_actor[pos] = cell
-        # Mark the position for updates.
-        self.updates.add(pos)
-
-    def toggle_wall(self, pos: tuple[int, int]):
-        """Toggle whether a wall exists at the given position."""
-        # Toggle the wall.
-        if self.grid[pos[0]][pos[1]][0] < 0:
-            self.grid[pos[0]][pos[1]][0] = 0
-        else:
-            self.grid[pos[0]][pos[1]][0] = -1
-        # Mark the position for updates.
-        self.updates.add(pos)
-
-    def update_one_action(self) -> Actor:
-        """Update the simulation by one actor's action.
-
-        Returns the actor that took an action.
-        """
-        # Get the next actor.
-        actor, stable_count = heapq.heappop(self.cells)
-        # Take action if not dead.
-        if actor.dead:
-            return actor
-        else:
-            actor.take_action()
-        # Resort the turn order.
-        heapq.heappush(self.cells, (actor, stable_count))
-        # Return the actor to take an action.
-        return actor
-
-    def update_one_turn(self):
+    def update_one_turn(self, amount: int = 100):
         """Update the simulation by one turn (100tu)."""
-        while True:
-            if self.update_one_action() is self.turn_counter:
-                break
+        self.global_time += amount
