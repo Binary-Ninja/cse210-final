@@ -31,13 +31,18 @@ class Main:
         for point in points:
             if self.cell_screen.cell_in_bounds(point):
                 self.simulation.grid[point[0]][point[1]] = 1
+        # Create the lake.
+        points = bf.draw_circle((self.cell_screen.width / 2, self.cell_screen.height / 2), 10.5)
+        for point in points:
+            if self.cell_screen.cell_in_bounds(point):
+                self.simulation.grid[point[0]][point[1]] = 0
 
         # Create the player.
         self.player_dir = (1, 0)
         self.player_pos = Vector2(self.cell_screen.width // 2, self.cell_screen.height // 2)
         self.player_inventory: list[Item] = [Item(HOE), Item(WATERING_CAN_EMPTY)]
         for seed_data in ALL_SEEDS:
-            self.player_inventory.append(Seed(*seed_data, 10))
+            self.player_inventory.append(Seed(*seed_data, count=10))
         self.current_item = 0
 
         # Draw everything for the first time.
@@ -76,7 +81,9 @@ class Main:
                 self.terminate()
 
             elif event.type == pg.KEYDOWN:
-                if event.key == pg.K_F2:
+                if event.key == pg.K_F1:
+                    self.debug = not self.debug
+                elif event.key == pg.K_F2:
                     self.screenshot()
 
                 elif event.key == pg.K_SPACE:
@@ -152,7 +159,7 @@ class Main:
                             item.count += 4 if plant.done_growing else 1
                             break
                     else:
-                        self.player_inventory.append(Seed(*plant, 4 if plant.done_growing else 1))
+                        self.player_inventory.append(Seed(*plant, count=4 if plant.done_growing else 1))
                     # Remove the plant.
                     self.simulation.remove_plant(plant)
                 # Toggle dirt and farmland.

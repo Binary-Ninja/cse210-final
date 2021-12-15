@@ -1,5 +1,25 @@
 """This file holds the item classes."""
 
+# Description:
+#   The following class Item is the class for all inventory items.
+#
+# OOP Principles Used:
+#   Inheritance and Polymorphism
+#
+# Reasoning:
+#   This class uses inheritance because it is also used as a superclass for more specific item classes.
+#   This class uses polymorphism because it and all its subclasses are valid inventory items.
+
+# Description:
+#   The following class Seed is used as a specific Item type that holds plant data.
+#
+# OOP Principles Used:
+#   Inheritance and Polymorphism
+#
+# Reasoning:
+#   This class uses inheritance because it is a subclass from Item.
+#   This class uses polymorphism because it acts like a regular item in the player inventory.
+
 __all__ = [
     "Item",
     "Seed",
@@ -34,10 +54,37 @@ GRASS_DATA: SEED_TYPE = ("Grass", (1, 2), [
     {"tile": (0x22, (0, 128, 0), None)},
 ])
 
+REED_DATA: SEED_TYPE = ("Reed", (0,), [
+    {"time": 200, "tile": (0x7c, (0, 200, 0), None)},
+    {"tile": (0xf4, (0, 200, 0), None)},
+])
+
+BERRY_DATA: SEED_TYPE = ("Berry Bush", (1, 2), [
+    {"time": 200, "tile": (0x05, (0, 255, 0), None), "water": True},
+    {"time": 200, "tile": (0x05, (0, 128, 0), None), "water": True},
+    {"tile": (0x05, (110, 50, 150), None)},
+])
+
+LILY_DATA: SEED_TYPE = ("Water Lily", (0, ), [
+    {"time": 50, "tile": (0x07, (0, 255, 0), None)},
+    {"time": 100, "tile": (0x09, (0, 255, 0), None)},
+    {"time": 100, "tile": (0x0f, (0, 255, 0), None)},
+    {"tile": (0x0f, (255, 255, 255), None)},
+])
+
+MUSHROOM_DATA: SEED_TYPE = ("Mushroom", (1,), [
+    {"time": 300, "tile": (0x18, (255, 128, 128), None)},
+    {"tile": (0x06, (255, 0, 0), None)},
+])
+
 ALL_SEEDS = (
     PUMPKIN_DATA,
     WHEAT_DATA,
     GRASS_DATA,
+    REED_DATA,
+    LILY_DATA,
+    BERRY_DATA,
+    MUSHROOM_DATA,
 )
 
 

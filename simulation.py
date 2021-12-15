@@ -1,5 +1,29 @@
 """The file that holds the simulation classes."""
 
+# Description:
+#   The following class Plant is used as a template for all the plants that grow in the game.
+#
+# OOP Principles Used:
+#   Abstraction and Encapsulation
+#
+# Reasoning:
+#   This class uses abstraction because it is useful to think of plants as having certain properties
+#   and methods.
+#   This class uses encapsulation because it holds both plant data and an update method that makes the
+#   plant grow.
+
+# Description:
+#   The following class Simulation is a singleton used for holding the world data.
+#
+# OOP Principles Used:
+#   Abstraction and Encapsulation
+#
+# Reasoning:
+#   This class uses abstraction because it is useful to think of the world as having certain properties
+#   and methods.
+#   This class uses encapsulation because it holds both world data and some useful functions to add
+#   plants, remove plants, and update the world by a certain amount of time.
+
 from pygame.math import Vector2
 
 PLAYER_TILES = {
@@ -59,8 +83,11 @@ class Plant:
         if self.done_growing:
             return
 
-        if self.simulation.global_time - self.last_time > self.stages[self.stage]["time"] and \
-                not self.needs_water:
+        # Don't grow until watered.
+        if self.needs_water:
+            self.last_time = self.simulation.global_time
+
+        if self.simulation.global_time - self.last_time > self.stages[self.stage]["time"]:
             # Update the simulation.
             self.simulation.updates.add(self.pos)
             # Update the variables.
