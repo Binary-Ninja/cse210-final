@@ -1,5 +1,16 @@
 #!/usr/bin/env python3
 
+# Description:
+#   The following class Main is used as the main application class.
+#   It isn't really needed, but I like it.
+#
+# OOP Principles Used:
+#   Abstraction and Encapsulation
+#
+# Reasoning:
+#   This class uses encapsulation because it contains both game variables and functions.
+#   This class uses abstraction because running the game is as easy as calling Main.run().
+
 import sys
 from datetime import datetime
 from pathlib import Path
